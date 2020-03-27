@@ -1,6 +1,11 @@
+#Andy Jiang, Sherrill Group, Georgia Institute of Technology
+
+#Equations are from J. Mol. Biol (1995) 251, 648-664 by M. A. El Hassan and C. R. Calladine
+
 import numpy as np
 import math
 
+#Rx, Ry, and Rz represents rotations about the x, y, or z axis, respectively and are obtained from El Hassan
 def Rx(theta):
     return np.array([[1.00, 0.00, 0.00], [0.00, math.cos(theta), -1*math.sin(theta)], [0.00, math.sin(theta), math.cos(theta)]], dtype=float)
 
@@ -10,11 +15,11 @@ def Ry(theta):
 def Rz(theta):
     return np.array([[math.cos(theta), -1*math.sin(theta), 0.00], [math.sin(theta), math.cos(theta), 0.00], [0.00, 0.00, 1.00]], dtype=float)
 
+#x, y, and z are the direction vectors associated with the nucleobase
 def Ti(x, y, z):
     return np.transpose(np.array([x, y, z], dtype = float))
 
-#x, y, and z are direction vectors
-
+#See El Hassan Equation 9
 def Tiplus1(x, y, z, omega, gamma, phi):
 
     rz1 = Rz(omega/2.0 - phi)
@@ -27,6 +32,7 @@ def Tiplus1(x, y, z, omega, gamma, phi):
 
     return result
 
+#See El Hassan Equation 10
 def Tmst(x, y, z, omega, gamma, phi):
 
     rz1 = Rz(omega/2.0 - phi)
@@ -39,20 +45,15 @@ def Tmst(x, y, z, omega, gamma, phi):
 
     return result
 
-def Xmst(Tm):
-    return Tm[:,0]
-
-def Ymst(Tm):
-    return Tm[:,1]
-
-def Zmst(Tm):
-    return Tm[:,2]
-
+#See El Hassan Equation 11
 def newOrigin(oldOrigin, Xm, Ym, Zm, Dx, Dy, Dz):
     return np.array(oldOrigin, dtype=float) + Dx*Xm + Dy*Ym + Dz*Zm
 
+#oldOrigin = the position vector of the first nucleobase; x, y, and z are the direction vectors of the first nucleobase
+#Dx = Shift, Dy = Slide, Dz = Rise, omega = Twist (z-rotation), rho = Roll (y-rotation), tau = Tilt (x-rotation)
 def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
     
+    # The equations for gamma and phi are derived from rho = gamma*cos(phi) and tau = gamma*sin(phi) from El Hassan
     gamma = math.sqrt(rho*rho + tau*tau)
 
     if rho != 0:
@@ -65,8 +66,8 @@ def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
         else:
             phi = -math.pi/2
 
-    if math.cos(phi)*rho < 0 or math.sin(phi)*tau < 0:
-        gamma = -1*gamma
+    #if math.cos(phi)*rho < 0 or math.sin(phi)*tau < 0:
+    #    gamma = -1*gamma
 
     tiplus1 = Tiplus1(x, y, z, omega, gamma, phi)
 
@@ -79,7 +80,8 @@ def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
     Zm = tmst[:,2]
 
     new_origin = newOrigin(oldOrigin, Xm, Ym, Zm, Dx, Dy, Dz)
-
+    
+    #returns a tuple representing the vectors for the origin and x, y, and z direction vectors for the second nucleobase
     return (new_origin, tiplus1[:,0], tiplus1[:,1], tiplus1[:,2])
 
 #print(calcNewBP([0,0,0], [1,0,0], [0,1,0], [0,0,1], 3, 0, 0, math.pi/2, 0, 0))
