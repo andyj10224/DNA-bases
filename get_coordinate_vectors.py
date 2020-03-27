@@ -104,7 +104,7 @@ def getNewBPFromMol(oldCoords, newMol, Dx, Dy, Dz, omega, rho, tau):
 
         superVector = superVector + newCoords[0]
 
-        atom.SetVector(superVector[0], superVector[1], superVector[2])\
+        atom.SetVector(superVector[0], superVector[1], superVector[2])
         
     #Returns the nucleobase, after the translations and rotations have been applied
     return newMol
