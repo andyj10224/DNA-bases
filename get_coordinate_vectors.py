@@ -1,3 +1,5 @@
+#Andy Jiang, Sherrill Group, Georgia Institute of Technology
+
 import sys
 
 from openbabel import openbabel
@@ -10,22 +12,15 @@ import math
 import base_step_2
 from base_step_2 import calcNewBP
 
-#print(calcNewBP([0,0,0], [1,0,0], [0,1,0], [0,0,1], 0.0, 0.0, 0.0, 0, 0, -1*math.pi/2))
-
+#This function allows the calculation of the direction vectors (x, y, and z) of a given molecule (OBMol object)
 def getOriginAndVectors(mol, origin):
 
     atom1 = None
-    atom2 = None
+    #atom2 = None
 
     origin = np.array(origin, dtype=float)
 
     numRings = GetNumRings(mol)
-
-    print("Num Atoms: " , mol.NumAtoms())
-
-    print("Num Rings: " + str(numRings))
-
-    print("Residue:", mol.GetResidue(0))
 
     if numRings == 1:
         for res in openbabel.OBResidueIter(mol):
@@ -81,16 +76,18 @@ def getOriginAndVectors(mol, origin):
 
     return (origin, x_vector, y_vector, z_vector)
 
-def getNewCoordsFromOldCoords(oldCoords, Dx, Dy, Dz, tau, rho, omega):
-    newCoords = calcNewBP(oldCoords[0], oldCoords[1], oldCoords[2], oldCoords[3], Dx, Dy, Dz, omega, rho, tau)
-    return newCoords
-
+#This function calculates the positions of the atoms in the molecule to be added (newMol)
+#oldCoords is a tuple representing the origin, x-direction vector, y-direction vector, and z-direction vector (in that order)
+#oldCoords is from the molecule added before this new molecule is to be added
 def getNewBPFromMol(oldCoords, newMol, Dx, Dy, Dz, omega, rho, tau):
-
+    
+    #newCoords is a tuple containing the origin and direction vectors in the same order as old tuple
+    #newCoords will be the direction vectors of the new base pair after the translations and rotations are applied
     newCoords = calcNewBP(oldCoords[0], oldCoords[1], oldCoords[2], oldCoords[3], Dx, Dy, Dz, omega, rho, tau)
 
     newMol.SetChainsPerceived()
-
+    
+    #oldCoords2 represents the origin and direction vectors of the base pair to be added before the translations and rotations are applied
     oldCoords2 = getOriginAndVectors(newMol, np.array([0, 0, 0], dtype=float))
 
     for atom in openbabel.OBMolAtomIter(newMol):
@@ -107,10 +104,12 @@ def getNewBPFromMol(oldCoords, newMol, Dx, Dy, Dz, omega, rho, tau):
 
         superVector = superVector + newCoords[0]
 
-        atom.SetVector(superVector[0], superVector[1], superVector[2])
-
+        atom.SetVector(superVector[0], superVector[1], superVector[2])\
+        
+    #Returns the nucleobase, after the translations and rotations have been applied
     return newMol
 
+#Returns the number of rings in a molecule, useful for checking if a nucleobase is a pyrimidine or a purine
 def GetNumRings(mol):
     count = 0
 
@@ -119,13 +118,16 @@ def GetNumRings(mol):
 
     return count
 
+#Prints the name of each atom in a molecule, useful for debugging purposes
 def printAtomNames(mol):
     for res in openbabel.OBResidueIter(mol):
         for atom in openbabel.OBResidueAtomIter(res):
             name = res.GetAtomID(atom)
             print(name)
 
-
+#This function returns a nucleobase after the translations and rotations have been applied, also sets the chain of the nucleobase
+#i = the order of the nucleobase in the stack, oldCoords = the origin and direction vectors of nucleobase i-1
+#newMol = the nucleobase to be added
 def build(i, oldCoords, newMol, shift, slide, rise, tilt, roll, twist):
 
     newMol = getNewBPFromMol(oldCoords, newMol, shift, slide, rise, math.radians(twist), math.radians(roll), math.radians(tilt))
@@ -136,6 +138,7 @@ def build(i, oldCoords, newMol, shift, slide, rise, tilt, roll, twist):
 
     return newMol
 
+#Returns the name of a nucleobase file based on its letter (A, U, T, G, C)
 def letterToNucleotide(letter):
     if letter == 'A':
         return "adenine.pdb"
@@ -148,6 +151,7 @@ def letterToNucleotide(letter):
     elif letter == 'C':
         return "cytosine.pdb"
 
+#This function stacks nucleotides based on inputs from a file (stackFile is the file name)
 def stack(stackFile):
 
     conv = openbabel.OBConversion()
@@ -161,7 +165,8 @@ def stack(stackFile):
     oldCoords = None
 
     molArr = None
-
+    
+    #ladder is the stack of nucleobases
     ladder = openbabel.OBMol()
 
     firstMol = openbabel.OBMol()
@@ -185,11 +190,13 @@ def stack(stackFile):
         tempMol = openbabel.OBMol()
 
         conv.ReadFile(tempMol, letterToNucleotide(line[0]))
-
+        
+        #In each iteration, the new nucleobase is added to ladder
         ladder += build(i, oldCoords, tempMol, Dx, Dy, Dz, Rx, Ry, Rz)
 
         ladder.SetChainsPerceived()
-
+        
+        #oldCoords becomes updated with the coordinates of the new nucleobase, so the next nucleobase after it can be adjusted
         oldCoords = calcNewBP(oldCoords[0], oldCoords[1], oldCoords[2], oldCoords[3], Dx, Dy, Dz, math.radians(Rz), math.radians(Ry), math.radians(Rx))
 
 
