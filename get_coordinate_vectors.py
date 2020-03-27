@@ -166,7 +166,7 @@ def stack(stackFile):
 
     molArr = None
     
-    #ladder is the stack of nucleobases
+    #ladder is the stack of nucleobases that will be returned by this function
     ladder = openbabel.OBMol()
 
     firstMol = openbabel.OBMol()
