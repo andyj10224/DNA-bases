@@ -1,0 +1,5 @@
+Base, shift, slide, rise, tilt, roll, twist
+U 0 0 0 0 0 0
+U 1 2 3 26 0 13
+U 2 3 4 42 0 18
+U 4 5 6 60 0 20
