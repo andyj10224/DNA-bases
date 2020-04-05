@@ -88,34 +88,3 @@ def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
     
     #returns a tuple representing the vectors for the origin and x, y, and z direction vectors for the new nucleobase
     return (new_origin, tiplus1[:,0], tiplus1[:,1], tiplus1[:,2])
-
-def calcNewTMST(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
-    omega = omega
-    tau = tau
-    rho = rho
-
-    # The equations for gamma and phi are derived from rho = gamma*cos(phi) and tau = gamma*sin(phi) from El Hassan
-    gamma = math.sqrt(rho*rho + tau*tau)
-
-    if rho != 0:
-        phi = math.atan(tau/rho)
-
-    else:
-        if tau > 0:
-            phi = math.pi/2
-
-        else:
-            phi = -math.pi/2
-
-    omega = omega
-    gamma = gamma
-    phi = phi
-
-    #if math.cos(phi)*rho < 0 or math.sin(phi)*tau < 0:
-    #    gamma = -1*gamma
-
-    tiplus1 = Tiplus1(x, y, z, omega, gamma, phi)
-
-    tmst = Tmst(x, y, z, omega, gamma, phi)
-
-    return (np.array(oldOrigin), tmst[:,0], tmst[:,1], tmst[:,2])
