@@ -9,14 +9,15 @@ import numpy as np
 from numpy import linalg
 import math
 
-import base_step_2
-from base_step_2 import calcNewBP
+import base_step_3
+from base_step_3 import calcNewBP
+from base_step_3 import calcNewTMST
 
 #This function allows the calculation of the direction vectors (x, y, and z) of a given molecule (OBMol object)
 def getOriginAndVectors(mol, origin):
 
     atom1 = None
-    #atom2 = None
+    atom2 = None
 
     origin = np.array(origin, dtype=float)
 
@@ -26,10 +27,10 @@ def getOriginAndVectors(mol, origin):
         for res in openbabel.OBResidueIter(mol):
             for atom in openbabel.OBResidueAtomIter(res):
                 name = res.GetAtomID(atom)
-                if name.find("C6") >= 0:
+                if name.find("N3") >= 0:
                     atom1 = atom
-                #elif name.find("C6") >= 0:
-                #    atom2 = atom
+                elif name.find("C6") >= 0:
+                    atom2 = atom
 
                 
 
@@ -37,14 +38,14 @@ def getOriginAndVectors(mol, origin):
         for res in openbabel.OBResidueIter(mol):
             for atom in openbabel.OBResidueAtomIter(res):
                 name = res.GetAtomID(atom)
-                if name.find("C8") >= 0:
+                if name.find("N1") >= 0:
                     atom1 = atom
-                #elif name.find("C4") >= 0:
-                #    atom2 = atom
+                elif name.find("C4") >= 0:
+                    atom2 = atom
 
     y_vector = [atom1.GetX(), atom1.GetY(), atom1.GetZ()]
 
-    y_vector = np.array(y_vector, dtype=float) - origin
+    y_vector = np.array(y_vector, dtype=float)
 
     y_vector = y_vector/(np.linalg.norm(y_vector))
 
@@ -67,46 +68,83 @@ def getOriginAndVectors(mol, origin):
     x_vector = np.cross(y_vector, z_vector)
 
     atom1_vector = [atom1.GetX(), atom1.GetY(), atom1.GetZ()]
-    #atom2_vector = [atom2.GetX(), atom2.GetY(), atom2.GetZ()]
+    atom2_vector = [atom2.GetX(), atom2.GetY(), atom2.GetZ()]
 
     atom1_vector = np.array(atom1_vector, dtype=float)
-    #atom2_vector = np.array(atom2_vector, dtype=float)
+    atom2_vector = np.array(atom2_vector, dtype=float)
 
-    #origin = (atom1_vector + atom2_vector)/2
+    origin = (atom1_vector + atom2_vector)/2
+
+    origin = np.array([0, 0, 0])
+    x_vector = np.array([1, 0, 0])
+    y_vector = np.array([0, 1, 0])
+    z_vector = np.array([0, 0, 1])
 
     return (origin, x_vector, y_vector, z_vector)
 
 #This function calculates the positions of the atoms in the molecule to be added (newMol)
 #oldCoords is a tuple representing the origin, x-direction vector, y-direction vector, and z-direction vector (in that order)
 #oldCoords is from the molecule added before this new molecule is to be added
-def getNewBPFromMol(oldCoords, newMol, Dx, Dy, Dz, omega, rho, tau):
+def applyRotations(coordArr, newMol):
     
     #newCoords is a tuple containing the origin and direction vectors in the same order as old tuple
     #newCoords will be the direction vectors of the new base pair after the translations and rotations are applied
-    newCoords = calcNewBP(oldCoords[0], oldCoords[1], oldCoords[2], oldCoords[3], Dx, Dy, Dz, omega, rho, tau)
+    newCoords = coordArr[-1]
+
+    origin = newCoords[0]
+
+    firstCoords = coordArr[0]
 
     newMol.SetChainsPerceived()
-    
-    #oldCoords2 represents the origin and direction vectors of the base pair to be added before the translations and rotations are applied
-    oldCoords2 = getOriginAndVectors(newMol, np.array([0, 0, 0], dtype=float))
 
     for atom in openbabel.OBMolAtomIter(newMol):
 
-        atom.SetVector(atom.GetX() - oldCoords2[0][0], atom.GetY() - oldCoords2[0][1], atom.GetZ() - oldCoords2[0][2])
+        atomVector = np.transpose(np.array([atom.GetX(), atom.GetY(), atom.GetZ()], dtype=float)) #- firstCoords[0]
 
-        atomVector = np.transpose(np.array([atom.GetX(), atom.GetY(), atom.GetZ()], dtype=float))
+        length = np.linalg.norm(atomVector)
 
-        A = np.dot(atomVector, oldCoords2[1])
-        B = np.dot(atomVector, oldCoords2[2])
-        C = np.dot(atomVector, oldCoords2[3])
+        #preTransMatrix = np.array([firstCoords[1], firstCoords[2], firstCoords[3]], dtype=float)
 
-        superVector = A*newCoords[1] + B*newCoords[2] + C*newCoords[3]
+        oldTransMatrix = np.array([firstCoords[1], firstCoords[2], firstCoords[3]])
+        newTransMatrix = np.transpose(np.array([newCoords[1], newCoords[2], newCoords[3]], dtype=float))
 
-        superVector = superVector + newCoords[0]
+        transMatrix = np.matmul(newTransMatrix, oldTransMatrix)
+
+        superVector = np.matmul(transMatrix, atomVector)
+
+        #superVector = np.matmul(preTransMatrix, superVector)
+
+        #translation = np.array([np.dot(origin, newCoords[1]), np.dot(origin, newCoords[2]), np.dot(origin, newCoords[3])])
+        #translation = oldCoords[0] + Dx*tmst[1] + Dy*tmst[2] + Dz*tmst[3]
+        #translation = np.array([np.dot(translation, newCoords[1]), np.dot(translation, newCoords[2]), np.dot(translation, newCoords[3])])
+
+        #translation = np.matmul(transMatrix, translation)
+        #translation = np.matmul(preTransMatrix, translation)
+
+        #superVector += translation
 
         atom.SetVector(superVector[0], superVector[1], superVector[2])
         
     #Returns the nucleobase, after the translations and rotations have been applied
+    return newMol
+
+def applyTranslations(coordArr, newMol):
+
+    newMol.SetChainsPerceived()
+
+    newCoords = coordArr[-1]
+    oldCoords = coordArr[0]
+
+    oldTransMatrix = np.array([oldCoords[1], oldCoords[2], oldCoords[3]])
+    newTransMatrix = np.transpose(np.array([newCoords[1], newCoords[2], newCoords[3]]))
+
+    transMatrix1 = np.matmul(newTransMatrix, oldTransMatrix)
+
+    translation = newCoords[0] - np.matmul(transMatrix1, oldCoords[0])
+
+    for atom in openbabel.OBMolAtomIter(newMol):
+        atom.SetVector(atom.GetX() + translation[0], atom.GetY() + translation[1], atom.GetZ() + translation[2])
+
     return newMol
 
 #Returns the number of rings in a molecule, useful for checking if a nucleobase is a pyrimidine or a purine
@@ -128,9 +166,11 @@ def printAtomNames(mol):
 #This function returns a nucleobase after the translations and rotations have been applied, also sets the chain of the nucleobase
 #i = the order of the nucleobase in the stack, oldCoords = the origin and direction vectors of nucleobase i-1
 #newMol = the nucleobase to be added
-def build(i, oldCoords, newMol, shift, slide, rise, tilt, roll, twist):
+def build(i, coordArr, newMol):
 
-    newMol = getNewBPFromMol(oldCoords, newMol, shift, slide, rise, math.radians(twist), math.radians(roll), math.radians(tilt))
+    newMol = applyRotations(coordArr, newMol)
+
+    newMol = applyTranslations(coordArr, newMol)
 
     newMol.GetResidue(0).SetChain(chr(ord('A') + i - 1))
 
@@ -159,23 +199,18 @@ def stack(stackFile):
     ladder = openbabel.OBMol()
 
     stackFile = open(stackFile, "r")
-
     stackLines = stackFile.readlines()
+    stackFile.close()
 
-    oldCoords = None
-
-    molArr = None
-    
-    #ladder is the stack of nucleobases that will be returned by this function
-    ladder = openbabel.OBMol()
+    coordArr = []
 
     firstMol = openbabel.OBMol()
-
-    firstLine = stackLines[1].split()
-
-    conv.ReadFile(firstMol, letterToNucleotide(firstLine[0]))
+    conv.ReadFile(firstMol, letterToNucleotide(stackLines[1].split()[0]))
 
     oldCoords = getOriginAndVectors(firstMol, [0, 0, 0])
+
+    #ladder is the stack of nucleobases that will be returned by this function
+    ladder = openbabel.OBMol()
 
     for i in range(1, len(stackLines)):
         line = stackLines[i].split()
@@ -187,18 +222,17 @@ def stack(stackFile):
         Ry = float(line[5])
         Rz = float(line[6])
 
+        coordArr.append(calcNewBP(oldCoords[0], oldCoords[1], oldCoords[2], oldCoords[3], Dx, Dy, Dz, math.radians(Rz), math.radians(Ry), math.radians(Rx)))
+        oldCoords = coordArr[-1]
+
         tempMol = openbabel.OBMol()
 
         conv.ReadFile(tempMol, letterToNucleotide(line[0]))
-        
-        #In each iteration, the new nucleobase is added to ladder
-        ladder += build(i, oldCoords, tempMol, Dx, Dy, Dz, Rx, Ry, Rz)
 
+        tempMol = build(i, coordArr, tempMol)
+
+        ladder += tempMol
+        
         ladder.SetChainsPerceived()
-        
-        #oldCoords becomes updated with the coordinates of the new nucleobase, so the next nucleobase after it can be adjusted
-        oldCoords = calcNewBP(oldCoords[0], oldCoords[1], oldCoords[2], oldCoords[3], Dx, Dy, Dz, math.radians(Rz), math.radians(Ry), math.radians(Rx))
-
 
     conv.WriteFile(ladder, "ladder.pdb")
-    stackFile.close()
