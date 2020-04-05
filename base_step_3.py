@@ -5,6 +5,7 @@
 import numpy as np
 import math
 
+#The general rotation matrix for a rotation of angle (theta) about a 3-dimensional unit vector (u)
 def R(theta, u):
     cos = math.cos(theta)
     sin = math.sin(theta)
@@ -53,7 +54,7 @@ def Tmst(x, y, z, omega, gamma, phi):
 def newOrigin(oldOrigin, Xm, Ym, Zm, Dx, Dy, Dz):
     return np.array(oldOrigin, dtype=float) + Dx*Xm + Dy*Ym + Dz*Zm
 
-#oldOrigin = the position vector of the first nucleobase; x, y, and z are the direction vectors of the first nucleobase
+#oldOrigin = the position vector of the first nucleobase's origin; x, y, and z are the direction vectors of the first nucleobase
 #Dx = Shift, Dy = Slide, Dz = Rise, omega = Twist (z-rotation), rho = Roll (y-rotation), tau = Tilt (x-rotation)
 def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
     
@@ -73,10 +74,6 @@ def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
     #if math.cos(phi)*rho < 0 or math.sin(phi)*tau < 0:
     #    gamma = -1*gamma
 
-    omega = omega
-    gamma = gamma
-    phi = phi
-
     tiplus1 = Tiplus1(x, y, z, omega, gamma, phi)
 
     tmst = Tmst(x, y, z, omega, gamma, phi)
@@ -89,9 +86,8 @@ def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
 
     new_origin = newOrigin(oldOrigin, Xm, Ym, Zm, Dx, Dy, Dz)
     
-    #returns a tuple representing the vectors for the origin and x, y, and z direction vectors for the second nucleobase
+    #returns a tuple representing the vectors for the origin and x, y, and z direction vectors for the new nucleobase
     return (new_origin, tiplus1[:,0], tiplus1[:,1], tiplus1[:,2])
-
 
 def calcNewTMST(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
     omega = omega
