@@ -1,4 +1,4 @@
-#Andy Jiang, Sherrill Group, Georgia Institute of Technology
+#Andy Jiang and Asim Alenaizan, Sherrill Group, Georgia Institute of Technology
 
 import sys
 
