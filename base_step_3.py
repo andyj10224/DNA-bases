@@ -71,8 +71,8 @@ def calcNewBP(oldOrigin, x, y, z, Dx, Dy, Dz, omega, rho, tau):
         else:
             phi = -math.pi/2
 
-    #if math.cos(phi)*rho < 0 or math.sin(phi)*tau < 0:
-    #    gamma = -1*gamma
+    if math.cos(phi)*rho < 0 or math.sin(phi)*tau < 0:
+        gamma = -1*gamma
 
     tiplus1 = Tiplus1(x, y, z, omega, gamma, phi)
 
